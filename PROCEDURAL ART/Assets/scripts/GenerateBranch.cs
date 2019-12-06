@@ -6,8 +6,6 @@ public class GenerateBranch : MonoBehaviour
 {
     public bool UPDATE;
 
-    public Quaternion rot;
-
     [SerializeField] Branch branchh;
 
     [System.Serializable]
@@ -50,7 +48,7 @@ public class GenerateBranch : MonoBehaviour
 
         ends(true);
 
-        for (int d = 0; d < Length - 3; d++) {
+        for (int d = 1; d < Length - 2; d++) {
             Vector3[] tempPosses = new Vector3[branch.resolution];
             for (int i = 0; i < branch.resolution; i++) {
                 Vector2 p = posOnCircle(i, branch.resolution, branch.Widths[d]);
@@ -61,18 +59,18 @@ public class GenerateBranch : MonoBehaviour
                 vertices.Add(tempPosses[i]);
             }
 
-            //int v = vertices.Count;
+            int v = vertices.Count - 1;
 
-            //for (int i = 0; i < branch.resolution - 1; i++)
-            //{
-            //    triangles.Add(v - branch.resolution - i);
-            //    triangles.Add(v - 1 - i);
-            //    triangles.Add(v - branch.resolution - 1 - i);
+            for (int i = 0; i < branch.resolution - 1; i++) {
+                int[] verts = new int[] { v - branch.resolution - 1 - i, v - i - 1, v  - i, v - branch.resolution - i };
+                makeQuad(verts);
+            }
+        }
 
-            //    triangles.Add(v - branch.resolution - i);
-            //    triangles.Add(v - 1 - i);
-            //    triangles.Add(v - i);
-            //}
+        int vc = vertices.Count - 1 + branch.resolution;
+        for (int i = 0; i < branch.resolution - 1; i++) {
+            int[] verts = new int[] { vc - branch.resolution - 1 - i, vc - i - 1, vc - i, vc - branch.resolution - i };
+            makeQuad(verts);
         }
 
         ends(false);
@@ -109,7 +107,7 @@ public class GenerateBranch : MonoBehaviour
 
                 Vector3[] tempPosses = new Vector3[branch.resolution];
                 for (int i = 0; i < branch.resolution; i++) {
-                    Vector2 p = posOnCircle(i, branch.resolution, branch.Widths[branch.Widths.Count -1]);
+                    Vector2 p = posOnCircle(i, branch.resolution, branch.Widths[branch.Widths.Count -2]);
                     tempPosses[i] = new Vector3(p.x + branch.Positions[branch.Positions.Count - 2].x, p.y + branch.Positions[branch.Positions.Count - 2].y, branch.Positions[branch.Positions.Count - 2].z);
                     
                     Vector3 dir = (branch.Positions[branch.Positions.Count -1] - branch.Positions[branch.Positions.Count - 2]).normalized;
@@ -129,42 +127,19 @@ public class GenerateBranch : MonoBehaviour
                 triangles.Add(vertices.Count - 1);
             }
         }
+
+        void makeQuad(int[] vertecies) {
+            triangles.Add(vertecies[0]);
+            triangles.Add(vertecies[1]);
+            triangles.Add(vertecies[2]);
+
+            triangles.Add(vertecies[0]);
+            triangles.Add(vertecies[2]);
+            triangles.Add(vertecies[3]);
+        }
     }
 
-    //private void OnDrawGizmos()
-    //{
-    //    Branch branch = branchh;
-    //    Gizmos.DrawSphere(branch.Positions[0], 0.1f);
-    //    Gizmos.DrawSphere(branch.Positions[1], 0.1f);
-    //    Gizmos.DrawSphere(branch.Positions[2], 0.1f);
-
-
-
-    //    Vector3[] tempPosses = new Vector3[branch.resolution];
-    //    for (int i = 0; i < branch.resolution; i++) {
-    //        Vector2 p = posOnCircle(i,branch.resolution,branch.Widths[0]);
-    //        tempPosses[i] = new Vector3(p.x + branch.Positions[0].x, p.y + branch.Positions[0].y, branch.Positions[0].z);
-
-    //        Vector3 dir =(branch.Positions[0] - branch.Positions[1]).normalized;
-    //        Quaternion quatDir = Quaternion.LookRotation(dir);
-    //        //float step = 1 * Time.deltaTime;
-
-    //        //tempPosses[i] = Vector3.RotateTowards(tempPosses[i],dir,step, benis);
-    //        tempPosses[i] = RotatePointAroundPivot(tempPosses[i],branch.Positions[0], quatDir);
-
-
-
-
-    //        //Gizmos.DrawSphere(new Vector3(p.x, branch.Positions[0].y, p.y), .1f);
-
-    //        Gizmos.DrawSphere(tempPosses[i], .1f);
-
-    //        //float dist = Dist(branch.Positions[0],branch.Positions[1]);
-
-    //    }
-    //}
-
-    public Vector3 RotatePointAroundPivot(Vector3 point, Vector3 pivot, Quaternion angles) {
+    Vector3 RotatePointAroundPivot(Vector3 point, Vector3 pivot, Quaternion angles) {
         Vector3 dir = point - pivot; // get point direction relative to pivot
         dir = angles * dir; // rotate it
         point = dir + pivot; // calculate rotated point
