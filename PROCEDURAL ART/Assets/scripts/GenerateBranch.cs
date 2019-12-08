@@ -34,7 +34,6 @@ public class GenerateBranch : MonoBehaviour
 
         BranchGen(branchh);
         meshFilter.mesh = mesh;
-
     }
 
     void BranchGen(Branch branch) {

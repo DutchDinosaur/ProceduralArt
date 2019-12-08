@@ -2,83 +2,98 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GenerateTree : MonoBehaviour
+public class GenerateTreeMesh : MonoBehaviour
 {
-    public bool UPDATE;
+    [SerializeField] bool onValidate;
 
     [SerializeField] Branch branchh;
-
-    [System.Serializable]
-    class Branch {
-        public List<Vector3> Positions;
-        public List<float> Widths;
-        public List<Branch> subBranches;
-        public int resolution;
-        public float overshoot = 1;
-    }
 
     [SerializeField, HideInInspector]
     MeshFilter meshFilter;
 
     Mesh mesh;
 
+    List<Vector3> vertices;
+    List<int> triangles;
+    List<Vector2> uvs;
+    
     private void OnValidate() {
-        Initialise();
+        if (onValidate) {
+            Initialise();
+        }
     }
 
-    private void Initialise() {
+    public void Initialise() {
         mesh = new Mesh();
-        if (meshFilter == null)
-        {
+        if (meshFilter == null) {
             meshFilter = GetComponent<MeshFilter>();
         }
 
-        TreeGen(branchh);
-        meshFilter.mesh = mesh;
+        vertices = new List<Vector3>();
+        triangles = new List<int>();
 
+        TreeGen(branchh);
+
+        mesh.Clear();
+        mesh.vertices = vertices.ToArray();
+        mesh.triangles = triangles.ToArray();
+        //mesh.normals = vertices.ToArray();
+        mesh.uv = uvs.ToArray();
+        mesh.RecalculateNormals();
+
+        meshFilter.mesh = mesh;
     }
 
     void TreeGen(Branch branch) {
+        for (int i = 0; i < branch.subBranches.Count; i++) { //generate subbranches
+            TreeGen(branch.subBranches[i]);
+        }
+
         int Length = branch.Positions.Count;
-        if (Length < 3 || branch.Widths.Count != Length) {
-            Debug.LogError("incorrect branch data");
+        if (Length < 3 || branch.Widths.Count != Length || branch.resolution < 2) { //check branch data
+            //Debug.LogError("incorrect branch data");
             return;
         }
 
-        List<Vector3> vertices = new List<Vector3>();
-        List<int> triangles = new List<int>();
 
         for (int d = 0; d < Length - 2; d++) {
-            Vector3[] tempPosses = new Vector3[branch.resolution * 2];
+            Vector3[] tempPosses = new Vector3[branch.resolution * 2]; //calculate points for each piece
+            Vector2[] tempUvs = new Vector2[branch.resolution * 2];
+            float pieceLength = Dist(branch.Positions[d + 1], branch.Positions[d]);
+            Vector3 pieceTopOffset = ((branch.Positions[d + 1] - branch.Positions[d]).normalized * pieceLength * branch.overshoot);
+
             for (int i = 0; i < branch.resolution; i++) {
                 Vector2 p = posOnCircle(i, branch.resolution, branch.Widths[d]);
                 tempPosses[i] = new Vector3(p.x + branch.Positions[d].x, p.y + branch.Positions[d].y, branch.Positions[d].z);
 
                 Vector3 dir = (branch.Positions[d] - branch.Positions[d + 1]).normalized;
                 tempPosses[i] = RotatePointAroundPivot(tempPosses[i], branch.Positions[d], Quaternion.LookRotation(dir));
-                tempPosses[i + branch.resolution] = tempPosses[i] + ((branch.Positions[d + 1] - branch.Positions[d]).normalized * Dist(branch.Positions[d + 1], branch.Positions[d]) * branch.overshoot);
+                tempPosses[i + branch.resolution] = tempPosses[i] + pieceTopOffset;
+
+                //tempUvs[i] = new Vector2(,0);
+                //tempUvs[i + branch.resolution] = new Vector2(, );
             }
 
-            foreach (var pos in tempPosses) {
+            foreach (var pos in tempPosses) { //add points to vertecies
                 vertices.Add(pos);
             }
 
             int v = vertices.Count - 1;
-            for (int i = 0; i < branch.resolution - 1; i++) {
+            for (int i = 0; i < branch.resolution - 1; i++) { //add quads inbetween points
                 int[] verts = new int[] { v - branch.resolution - 1 - i
                                         , v - i - 1
                                         , v - i
                                         , v - branch.resolution - i
                 }; makeQuad(verts);
             }
-            int[] Verts = new int[] { v - branch.resolution 
+            int[] Verts = new int[] { v - branch.resolution //fill in last quad
                                     , v 
                                     , v - branch.resolution + 1
                                     , v - branch.resolution - branch.resolution + 1
             }; makeQuad(Verts);
 
-            vertices.Add(branch.Positions[d + 1]);
-
+            //add end to each piece
+            vertices.Add(branch.Positions[d] + pieceTopOffset * branch.overshootPoint);
             for (int i = 0; i < branch.resolution - 1; i++) {
                 triangles.Add(vertices.Count - 1);
                 triangles.Add(vertices.Count - 2 - i);
@@ -90,13 +105,7 @@ public class GenerateTree : MonoBehaviour
             triangles.Add(vertices.Count - 2);
         }
 
-        GenerateEnd();
-
-        mesh.Clear();
-        mesh.vertices = vertices.ToArray();
-        mesh.triangles = triangles.ToArray();
-        mesh.RecalculateNormals();
-
+        GenerateEnd(); //generate last piece
         void GenerateEnd() {
             Vector3[] tempPosses = new Vector3[branch.resolution];
             for (int i = 0; i < branch.resolution; i++) {
@@ -131,22 +140,19 @@ public class GenerateTree : MonoBehaviour
         }
     }
 
-    Vector3 RotatePointAroundPivot(Vector3 point, Vector3 pivot, Quaternion angles)
-    {
+    Vector3 RotatePointAroundPivot(Vector3 point, Vector3 pivot, Quaternion angles) {
         Vector3 dir = point - pivot; // get point direction relative to pivot
         dir = angles * dir; // rotate it
         point = dir + pivot; // calculate rotated point
         return point; // return it
     }
 
-    Vector2 posOnCircle(int i, int totalPosses, float radius)
-    {
+    Vector2 posOnCircle(int i, int totalPosses, float radius) {
         float dir = ((2 * Mathf.PI) / totalPosses) * i;
         return new Vector2(Mathf.Cos(dir) * radius, Mathf.Sin(dir) * radius);
     }
 
-    float Dist(Vector3 firstPosition, Vector3 secondPosition)
-    {
+    float Dist(Vector3 firstPosition, Vector3 secondPosition) {
         Vector3 heading;
         float distanceSquared;
         float distance;
