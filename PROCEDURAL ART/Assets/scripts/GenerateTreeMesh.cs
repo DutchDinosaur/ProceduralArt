@@ -31,6 +31,7 @@ public class GenerateTreeMesh : MonoBehaviour
 
         vertices = new List<Vector3>();
         triangles = new List<int>();
+        uvs = new List<Vector2>();
 
         TreeGen(branchh);
 
@@ -70,12 +71,14 @@ public class GenerateTreeMesh : MonoBehaviour
                 tempPosses[i] = RotatePointAroundPivot(tempPosses[i], branch.Positions[d], Quaternion.LookRotation(dir));
                 tempPosses[i + branch.resolution] = tempPosses[i] + pieceTopOffset;
 
-                //tempUvs[i] = new Vector2(,0);
-                //tempUvs[i + branch.resolution] = new Vector2(, );
+                float uvx = 1f / branch.resolution * i;
+                tempUvs[i] = new Vector2(uvx, 0);
+                tempUvs[i + branch.resolution] = new Vector2(uvx, pieceLength);
             }
 
-            foreach (var pos in tempPosses) { //add points to vertecies
-                vertices.Add(pos);
+            for (int i = 0; i < tempPosses.Length; i++) {
+                vertices.Add(tempPosses[i]);
+                uvs.Add(tempUvs[i]);
             }
 
             int v = vertices.Count - 1;
@@ -94,6 +97,8 @@ public class GenerateTreeMesh : MonoBehaviour
 
             //add end to each piece
             vertices.Add(branch.Positions[d] + pieceTopOffset * branch.overshootPoint);
+            uvs.Add(new Vector2(.5f, pieceLength));
+
             for (int i = 0; i < branch.resolution - 1; i++) {
                 triangles.Add(vertices.Count - 1);
                 triangles.Add(vertices.Count - 2 - i);
@@ -115,8 +120,10 @@ public class GenerateTreeMesh : MonoBehaviour
                 Vector3 dir = (branch.Positions[branch.Positions.Count - 1] - branch.Positions[branch.Positions.Count - 2]).normalized;
                 tempPosses[i] = RotatePointAroundPivot(tempPosses[i], branch.Positions[branch.Positions.Count - 2], Quaternion.LookRotation(dir));
                 vertices.Add(tempPosses[i]);
+                uvs.Add(new Vector2(1f /branch.resolution * i, 0));
             }
             vertices.Add(branch.Positions[branch.Positions.Count - 1]);
+            uvs.Add(new Vector2(.5f, 1));
 
             for (int i = 0; i < branch.resolution - 1; i++) {
                 triangles.Add(vertices.Count - 3 - i);
