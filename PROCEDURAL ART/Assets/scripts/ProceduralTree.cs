@@ -44,17 +44,29 @@ public class ProceduralTree : MonoBehaviour
 
         for (int i = 0; i < branches.Count; i++) {
             GrowBranch(branches[i].branchh, cuml[branches[i].branchh.ParentIndex]);
-        }
+            branches[i].Initialise();
 
-        List<int> subBranchParentIndexes = new List<int>();
-        foreach (var subBranch in branches) {
-            subBranchParentIndexes.Add(subBranch.branchh.ParentIndex);
+                if (branches[i].branchh.growthVector[branches[i].branchh.growthVector.Count - 1].magnitude < branches[i].branchh.newSectionReq) {
+                    addNewBranchSection(branches[i].branchh, generateRandomGrowthVector(Vector3.up));
+                    branches[i].branchh.newSectionReq -= branches[i].branchh.newSectionFallOff;
+                }
         }
 
         if (mainStump.branchh.growthVector[mainStump.branchh.growthVector.Count - 1].magnitude < mainStump.branchh.newSectionReq) {
             addNewBranchSection(mainStump.branchh, generateRandomGrowthVector(Vector3.up));
             mainStump.branchh.newSectionReq -= mainStump.branchh.newSectionFallOff;
+
+            for (int i = 0; i < rdm.Next(0,4); i++) {
+                addSubBranch();
+            }
         }
+    }
+
+    void addSubBranch() {
+        GenerateTreeMesh gtm = newBranch(mainStump.branchh.Positions[mainStump.branchh.Positions.Count - 1], generateRandomGrowthVector(Vector3.up), branchPrefab);
+        gtm.branchh.ParentIndex = mainStump.branchh.Positions.Count - 1;
+        GenerateGrowthVectors(gtm.branchh, Vector3.up);
+        branches.Add(gtm);
     }
 
     List<Vector3> GrowBranch(Branch br, Vector3 cumulativeOffset) {
@@ -74,9 +86,11 @@ public class ProceduralTree : MonoBehaviour
 
     GenerateTreeMesh newBranch(Vector3 pos, Vector3 dir, GameObject prefab) {
         GenerateTreeMesh tm = GameObject.Instantiate(prefab, Parent).GetComponent<GenerateTreeMesh>();
-        //for (int i = 0; i < b.Positions.Count; i++) {
-        //    b.Positions[i] += dir * i;
-        //}
+        for (int i = 0; i < tm.branchh.Positions.Count; i++) {
+            tm.branchh.Positions[i] = dir * i + pos;
+        }
+
+        
         tm.branchh.growthVector = new List<Vector3>();
         tm.Initialise();
         return tm;
@@ -96,8 +110,10 @@ public class ProceduralTree : MonoBehaviour
     }
 
     void GenerateGrowthVectors(Branch br , Vector3 BranchDirOffset) {
-        br.growthVector.Add(Vector3.zero);
+        br.growthVector = new List<Vector3>();
 
+        br.growthVector.Add(Vector3.zero);
+        
         for (int i = br.growthVector.Count; i < br.Positions.Count - 1; i++) {
             br.growthVector.Add((br.Positions[i + 1] - br.Positions[i]).normalized);
         }
