@@ -6,7 +6,7 @@ public class GenerateTreeMesh : MonoBehaviour
 {
     [SerializeField] bool onValidate;
 
-    [SerializeField] Branch branchh;
+    public Branch branchh;
 
     [SerializeField, HideInInspector]
     MeshFilter meshFilter;
@@ -97,7 +97,7 @@ public class GenerateTreeMesh : MonoBehaviour
 
             //add end to each piece
             vertices.Add(branch.Positions[d] + pieceTopOffset * branch.overshootPoint);
-            uvs.Add(new Vector2(.5f, pieceLength));
+            uvs.Add(new Vector2(.5f, branch.overshootPoint));
 
             for (int i = 0; i < branch.resolution - 1; i++) {
                 triangles.Add(vertices.Count - 1);
@@ -120,7 +120,7 @@ public class GenerateTreeMesh : MonoBehaviour
                 Vector3 dir = (branch.Positions[branch.Positions.Count - 1] - branch.Positions[branch.Positions.Count - 2]).normalized;
                 tempPosses[i] = RotatePointAroundPivot(tempPosses[i], branch.Positions[branch.Positions.Count - 2], Quaternion.LookRotation(dir));
                 vertices.Add(tempPosses[i]);
-                uvs.Add(new Vector2(1f /branch.resolution * i, 0));
+                uvs.Add(new Vector2(1f / branch.resolution * i, 0));
             }
             vertices.Add(branch.Positions[branch.Positions.Count - 1]);
             uvs.Add(new Vector2(.5f, 1));
@@ -164,9 +164,7 @@ public class GenerateTreeMesh : MonoBehaviour
         float distanceSquared;
         float distance;
 
-        heading.x = firstPosition.x - secondPosition.x;
-        heading.y = firstPosition.y - secondPosition.y;
-        heading.z = firstPosition.z - secondPosition.z;
+        heading = firstPosition - secondPosition;
 
         distanceSquared = heading.x * heading.x + heading.y * heading.y + heading.z * heading.z;
         distance = Mathf.Sqrt(distanceSquared);
