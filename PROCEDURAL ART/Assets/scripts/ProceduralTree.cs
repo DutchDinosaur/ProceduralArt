@@ -10,6 +10,12 @@ public class ProceduralTree : MonoBehaviour
     [SerializeField] bool useRandomSeed;
     [SerializeField] string seed;
 
+    public int branchChance;
+    public int bigRootChance;
+    public bool isGworing;
+
+    public Vector3 trackPos;
+
     GenerateTreeMesh mainStump;
     List<GenerateTreeMesh> branches;
 
@@ -28,14 +34,22 @@ public class ProceduralTree : MonoBehaviour
         GenerateGrowthVectors(mainStump.branchh, Vector3.up);
     }
 
-    private void FixedUpdate() {
-        if (b) {
-            grow();
-            mainStump.Initialise();
-            b = false;
-        }
-        else {
-            b = true;
+    private void LateUpdate() {
+        if (isGworing) {
+            if (b) {
+                grow();
+                mainStump.Initialise();
+
+                trackPos = mainStump.branchh.Positions[mainStump.branchh.Positions.Count -1];
+                if (mainStump.branchh.newSectionReq < 0) {
+                    trackPos = Vector3.up;
+                }
+
+                b = false;
+            }
+            else {
+                b = true;
+            }
         }
     }
 
@@ -56,14 +70,18 @@ public class ProceduralTree : MonoBehaviour
             addNewBranchSection(mainStump.branchh, generateRandomGrowthVector(Vector3.up));
             mainStump.branchh.newSectionReq -= mainStump.branchh.newSectionFallOff;
 
-            for (int i = 0; i < rdm.Next(0,4); i++) {
-                addSubBranch();
+            for (int i = 0; i < rdm.Next(0, branchChance); i++) {
+                addSubBranch( branchPrefab);
+            }
+
+            for (int i = 0; i < rdm.Next(0, bigRootChance); i++) {
+                addSubBranch(mainStum);
             }
         }
     }
 
-    void addSubBranch() {
-        GenerateTreeMesh gtm = newBranch(mainStump.branchh.Positions[mainStump.branchh.Positions.Count - 1], generateRandomGrowthVector(Vector3.up), branchPrefab);
+    void addSubBranch(GameObject prefab) {
+        GenerateTreeMesh gtm = newBranch(mainStump.branchh.Positions[mainStump.branchh.Positions.Count - 1], generateRandomGrowthVector(Vector3.up), prefab);
         gtm.branchh.ParentIndex = mainStump.branchh.Positions.Count - 1;
         GenerateGrowthVectors(gtm.branchh, Vector3.up);
         branches.Add(gtm);
@@ -130,7 +148,7 @@ public class ProceduralTree : MonoBehaviour
     Vector3 generateRandomGrowthVector(Vector3 dir) {
         Vector3 v = dir;
         
-        v += new Vector3(rdm.Next(-100, 100) / 100f, rdm.Next(0, 100) / 100f, rdm.Next(-100, 100) / 100f);
+        v += new Vector3(rdm.Next(-100, 100) / 100f, rdm.Next(-100, 100) / 100f, rdm.Next(-100, 100) / 100f);
         return v;
     }
 }
